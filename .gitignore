@@ -1,0 +1,7 @@
+.venv/
+*.pyc
+*.html
+*.json
+.__init__.py
+specialisten.py
+!.gitkeep
