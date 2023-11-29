@@ -1,12 +1,14 @@
 
 from time import sleep
+from datetime import datetime
 import json
 from config.logging_config import log_config
 import logging
 import xml.etree.ElementTree as ET
 from code.scraping import get_specialist_details
 from code.processing import process_details
-from code.get_cases import get_cases
+from code.database_actions import (get_cases, write_results )
+
 
 
 
@@ -46,20 +48,44 @@ rootlogger.debug(f'configuraties uitgelezen. Targetomgeving: {targetomgeving}, s
 
 
 
-
 if __name__ == '__main__':
 
+    timestamp = datetime.now()
+
+    rootlogger.info('getting cases')
+    # get cases to query in the vektis source
     cases = get_cases(connection=connectie_replicatie, sqlfile_path='project_files\code\get_cases.sql')
 
+    rootlogger.info(f'got {len(cases[0])} cases')
 
-    for case in cases[0][:2]:
+    #store results in a list of dicts
+    results = []
+
+    for case in cases[0]:
+
         sleep(4)
-        agbcode = case['AgbCode']
-        specialist_id = case['specialist_id']
+        row = {}
+        row['timestamp_check'] = timestamp
+        row['agbcode'] = case['AgbCode']
+        row['specialist_id'] = case['specialist_id']
 
-        html = get_specialist_details(agbcode=agbcode)
+        rootlogger.info(f"getting vektis info for {case['AgbCode']}")
 
+        # get the data from vektis
+        html = get_specialist_details(agbcode=case['AgbCode'])
+
+        rootlogger.info(f"retrieve complete")
+        #process and convert to json
         processed = process_details(html=html)
+        processed_json = json.dumps(processed, indent = 4)
+        rootlogger.debug(processed_json)
 
-        with open(f'./project_files/data/details_{agbcode}.json', 'w', encoding='utf8') as f:
-            json.dump(processed, f, indent = 4)
+        row['result']  = processed_json
+        rootlogger.info(f"processing complete")
+
+        results.append(row)
+
+
+    
+    write_results(connection=connectie_lookup, schema = 'dbo', target_table_name='agb_register_gegevens', data=results)
+        

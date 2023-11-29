@@ -5,7 +5,7 @@ from utils import logfileNamer
 logroot = "./logs"
 logmail_ontvangers = ["n.kakes@hsk.nl"]
 
-filename = logfileNamer(path=logroot, basename="_Feedex_datadump")
+filename = logfileNamer(path=logroot, basename="_AGB_register_scrapen")
 
 
 log_config = {

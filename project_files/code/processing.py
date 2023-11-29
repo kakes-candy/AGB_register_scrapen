@@ -1,21 +1,31 @@
 from bs4 import BeautifulSoup
 import json
-
-def tag_contains():
-    pass
+import logging
 
 
-
+logger = logging.getLogger()
 
 
 
 def get_personal_info(soup) -> dict:
 
     pers_info = {}
+    pers_info['error'] = None
+
+    # check if there if the agb code was fount
+    no_result =  soup.find_all(lambda tag:tag.name=="h1" and "Pagina niet gevonden" in tag.text) 
+    no_result += (soup.find_all(lambda tag:tag.name=="p" and "Geen zorgverlener gevonden met de agbcode" in tag.text) )
+
+
+    if len(no_result) > 0:
+        logger.info('no result for this agb code')
+        logger.debug(no_result)
+        pers_info['error'] = 'Geen zorgverlener gevonden met de agbcode' 
+        return(pers_info)
 
     dahboard_header = soup.find('div', class_= 'dashboard-header' )
     div_agb_code = dahboard_header.find('div', class_ = ['dashboard-header__agb-code', 'title', 'title--h2'])
-    pers_info['agb_code'] = div_agb_code.text.strip()
+    pers_info['agb_code'] = "".join(div_agb_code.find_all(string=True, recursive=False)).strip()
 
 
     dates_container = dahboard_header.find('div', class_ = 'dashboard-header__agb-code-dates')
@@ -158,13 +168,14 @@ def process_details(html):
 
     prof = {}
     prof['pers_info'] = get_personal_info(soup=soup)  
+    # if the agb code was not found on vektis return
+    if prof['pers_info'].get('error'):
+        return(prof)
     prof['erkenningen'] = get_qualifications(soup=soup, type_title='Mijn kwalificaties')
     prof['qualifications'] = get_qualifications(soup=soup, type_title='Mijn erkenningen')
     prof['works_at'] = get_relations(soup, type_title= 'Ik ben werkzaam bij de volgende vestigingen')
     prof['works_for'] = get_relations(soup, type_title='Ik heb een arbeidsrelatie met')
 
     return(prof)
-
-
 
 

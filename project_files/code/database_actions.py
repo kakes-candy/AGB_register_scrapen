@@ -18,3 +18,15 @@ def get_cases(connection: str, sqlfile_path: str):
     cases = list(generator.get_generator())
 
     return(cases)
+
+
+
+def write_results(connection, schema, target_table_name, data):
+    
+    # Get the table definition
+    target_table_schema = SQLTableSchema.from_connection(connection=connection, schema=schema, table=target_table_name)
+
+    writer = SqlServerDataWriter(connection=connection, tableschema=target_table_schema, target_schema=schema)
+
+    writer.sql_insert_dictionary(data)
+
